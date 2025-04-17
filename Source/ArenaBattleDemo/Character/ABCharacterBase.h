@@ -4,10 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interface/ABAnimationAttackInterface.h"
+
 #include "ABCharacterBase.generated.h"
 
 class UABComboActionData;
 class UABCharacterControlData;
+class AController;
+struct FDamageEvent;
 
 UENUM()
 enum class ECharacterControlType : uint8
@@ -17,7 +21,7 @@ enum class ECharacterControlType : uint8
 };
 
 UCLASS()
-class ARENABATTLEDEMO_API AABCharacterBase : public ACharacter
+class ARENABATTLEDEMO_API AABCharacterBase : public ACharacter, public IABAnimationAttackInterface
 {
 	GENERATED_BODY()
 
@@ -26,6 +30,12 @@ public:
 	AABCharacterBase();
 
 	virtual void SetCharacterControlData(const UABCharacterControlData* InCharacterControlData);
+
+	// 공격 감지 함수 (애님 노티파이로부터 호출)
+	virtual void AttackHitCheck() override;
+
+	// 대미지 처리 함수 (오버라이드)
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	// Combo Section
 protected:
@@ -46,15 +56,23 @@ protected:
 	// 타이머 시간 사이에 입력이 들어왔는지 여부를 확인하는 함수
 	void ComboCheck();
 
+	// Dead Section
+protected:
+	// 죽음 상태 설정 함수
+	virtual void SetDead();
+
+	// 죽는 애니메이션 재생 함수
+	void PlayDeadAnimation();
+
 protected:
 	UPROPERTY(EditAnywhere, Category = CharacterControl, meta = (AllowPrivateAccess = "true"))
 	TMap<ECharacterControlType, UABCharacterControlData*> CharacterControlManager;
 
-	// 공격 몽타주 에셋
+	// 공격 몽타주 애셋
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UAnimMontage> ComboActionMontage;
 	
-	// 콤보 처리 시 사용할 데이터 에셋
+	// 콤보 처리 시 사용할 데이터 애셋
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Attack, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UABComboActionData> ComboActionData;
 	
@@ -67,4 +85,13 @@ protected:
 	
 	// 콤보 타이머 이전에 입력이 들어왔는지를 확인하는 bool 변수
 	bool HasNextComboCommand = false;
+
+	// Dead Section
+protected:
+	// 사망 몽타주 애셋
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UAnimMontage> DeadMontage;
+
+	// 사망 후 액터 제거까지의 시간
+	float DeadEventDelayTime = 5.0f;
 };

@@ -118,7 +118,7 @@ void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* Player
 
 void AABCharacterPlayer::SetCharacterControl(ECharacterControlType NewCharacterControlType)
 {
-	// 변경할 컨트롤 타입에 대응하는 데이터 에셋 로드 (TMap으로부터)
+	// 변경할 컨트롤 타입에 대응하는 데이터 애셋 로드 (TMap으로부터)
 	UABCharacterControlData* NewCharacterControl = CharacterControlManager[NewCharacterControlType];
 	check(NewCharacterControl);
 

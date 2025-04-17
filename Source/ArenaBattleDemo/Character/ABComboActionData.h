@@ -27,7 +27,7 @@ public:
 	uint8 MaxComboCount;
 
 	// 프레임 재생 속도
-	// 애니메이션 에셋의 기본 재생 속도 값이 설정됨
+	// 애니메이션 애셋의 기본 재생 속도 값이 설정됨
 	UPROPERTY(EditAnywhere, Category = ComboData)
 	float FrameRate;
 

@@ -5,7 +5,9 @@
 
 #include "ABCharacterControlData.h"
 #include "ABComboActionData.h"
+#include "CharacterStat/ABCharacterStatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Physics/ABCollision.h"
@@ -16,11 +18,37 @@ AABCharacterBase::AABCharacterBase()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 컴포넌트 설정
-	GetCapsuleComponent()->SetCollisionProfileName(CPROFILE_ABCAPSULE);
+	// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
 
+	// 무브먼트 설정
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
+	GetCharacterMovement()->JumpZVelocity = 600.0f;
+	
+	// 컴포넌트 설정
+	GetCapsuleComponent()->SetCapsuleHalfHeight(88.0f);
+	GetCapsuleComponent()->SetCollisionProfileName(CPROFILE_ABCAPSULE);
+	
 	// 메시의 콜리전은 NoCollision으로 설정 (주로 랙돌에 사용됨)
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
+	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
+	
+	// 리소스 설정
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
+	if (CharacterMesh.Object)
+	{
+		GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
+	}
+
+	// Animation Blueprint 설정
+	static ConstructorHelpers::FClassFinder<UAnimInstance> CharacterAnim(TEXT("/Game/ArenaBattle/Animation/ABP_ABCharacter.ABP_ABCharacter_C"));
+	if (CharacterAnim.Class)
+	{
+		GetMesh()->SetAnimClass(CharacterAnim.Class);
+	}
 	
 	static ConstructorHelpers::FObjectFinder<UABCharacterControlData> ShoulderDataRef(TEXT("/Game/ArenaBattle/CharacterControl/ABC_Shoulder.ABC_Shoulder"));
 	if (ShoulderDataRef.Object)
@@ -53,6 +81,31 @@ AABCharacterBase::AABCharacterBase()
 	if (DeadMontageRef.Object)
 	{
 		DeadMontage = DeadMontageRef.Object;
+	}
+
+	// Stat Component
+	Stat = CreateDefaultSubobject<UABCharacterStatComponent>(TEXT("Stat"));
+	
+	// Widget Component
+	HpBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
+	HpBar->SetupAttachment(GetMesh());
+	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
+	
+	// 사용할 위젯 클래스 정보 설정
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(TEXT("/Game/ArenaBattle/UI/WBP_HpBar.WBP_HpBar_C"));
+	if (HpBarWidgetRef.Class)
+	{
+		// 위젯 컴포넌트는 위젯의 클래스 정보를 바탕으로 자체적으로 인스턴스를 생성
+		HpBar->SetWidgetClass(HpBarWidgetRef.Class);
+		
+		// 2D 모드로 그리기
+		HpBar->SetWidgetSpace(EWidgetSpace::Screen);
+
+		// 크기 설정
+		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
+
+		// 콜리전 끄기
+		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);		
 	}
 }
 
@@ -269,7 +322,7 @@ void AABCharacterBase::PlayDeadAnimation()
 		// 이미 재생 중인 몽타주가 있다면, 모두 종료
 		AnimInstance->StopAllMontages(0.0f);
 
-		// 자동으로 다른 애니메이션으로 넘어가지 않고, 현재 애니메이션 유지 여부
+		// 자동으로 다른 애니메이션으로 넘어가지 않고, 현재 애니메이션을 유지할지 여부
 		DeadMontage->bEnableAutoBlendOut = false;
 		
 		// 사망 몽타주 재생

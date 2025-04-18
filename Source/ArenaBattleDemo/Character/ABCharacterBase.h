@@ -8,6 +8,8 @@
 
 #include "ABCharacterBase.generated.h"
 
+class UWidgetComponent;
+class UABCharacterStatComponent;
 class UABComboActionData;
 class UABCharacterControlData;
 class AController;
@@ -94,4 +96,12 @@ protected:
 
 	// 사망 후 액터 제거까지의 시간
 	float DeadEventDelayTime = 5.0f;
+
+	// Stat/Widget Section
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = State, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UABCharacterStatComponent> Stat;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Widget, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UWidgetComponent> HpBar;
 };

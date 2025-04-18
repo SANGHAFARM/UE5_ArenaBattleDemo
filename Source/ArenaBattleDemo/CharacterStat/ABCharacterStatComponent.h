@@ -47,7 +47,7 @@ public:
 	// 스탯
 protected:
 	// 최대 체력 값
-	UPROPERTY(VisibleAnywhere, Category = Stat)
+	UPROPERTY(VisibleInstanceOnly, Category = Stat)
 	float MaxHp;
 
 	// 현재 체력 값

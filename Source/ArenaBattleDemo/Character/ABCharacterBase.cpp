@@ -7,10 +7,12 @@
 #include "ABComboActionData.h"
 #include "CharacterStat/ABCharacterStatComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Physics/ABCollision.h"
+#include "UI/ABUserWidget.h"
+#include "UI/ABWidgetComponent.h"
+#include "UI/ABHpBarWidget.h"
 
 // Sets default values
 AABCharacterBase::AABCharacterBase()
@@ -87,12 +89,14 @@ AABCharacterBase::AABCharacterBase()
 	Stat = CreateDefaultSubobject<UABCharacterStatComponent>(TEXT("Stat"));
 	
 	// Widget Component
-	HpBar = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
+	HpBar = CreateDefaultSubobject<UABWidgetComponent>(TEXT("Widget"));
+
+	// 컴포넌트 계층 설정 및 상대 위치 설정 (머리 위로 보일 수 있게)
 	HpBar->SetupAttachment(GetMesh());
 	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
 	
 	// 사용할 위젯 클래스 정보 설정
-	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(TEXT("/Game/ArenaBattle/UI/WBP_HpBar.WBP_HpBar_C"));
+	static ConstructorHelpers::FClassFinder<UABUserWidget> HpBarWidgetRef(TEXT("/Game/ArenaBattle/UI/WBP_HpBar.WBP_HpBar_C"));
 	if (HpBarWidgetRef.Class)
 	{
 		// 위젯 컴포넌트는 위젯의 클래스 정보를 바탕으로 자체적으로 인스턴스를 생성
@@ -105,7 +109,7 @@ AABCharacterBase::AABCharacterBase()
 		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
 
 		// 콜리전 끄기
-		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);		
+		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 
@@ -118,6 +122,23 @@ void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* In
 	GetCharacterMovement()->bOrientRotationToMovement = InCharacterControlData->bOrientRotationToMovement;
 	GetCharacterMovement()->bUseControllerDesiredRotation = InCharacterControlData->bUseControllerDesiredRotation;
 	GetCharacterMovement()->RotationRate = InCharacterControlData->RotationRate;
+}
+
+void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
+{
+	// 필요한 위젯 정보 가져오기
+	UABHpBarWidget* HpBarWidget = Cast<UABHpBarWidget>(InUserWidget);
+	if (HpBarWidget)
+	{
+		// 최대 체력 값 설정
+		HpBarWidget->SetMaxHp(Stat->GetMaxHP());
+
+		// HP 퍼센트가 제대로 계산되도록 현재 체력 설정
+		HpBarWidget->UpdateHpBar(Stat->GetCurrentHP());
+
+		// 체력 변경 이벤트(델리게이트)에 함수 및 객체 정보 등록
+		Stat->OnHpChanged.AddUObject(HpBarWidget, &UABHpBarWidget::UpdateHpBar);
+	}
 }
 
 void AABCharacterBase::AttackHitCheck()
@@ -177,9 +198,20 @@ float AABCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	
 	// 맞으면 바로 사망하도록 처리
-	SetDead();
+	//SetDead();
+
+	// 스탯 정보가 업데이트 되도록 대미지 전달
+	Stat->ApplyDamage(DamageAmount);
 	
 	return DamageAmount;
+}
+
+void AABCharacterBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// 사망 시 발행되는 이벤트에 등록
+	Stat->OnHpZero.AddUObject(this, &AABCharacterBase::SetDead);
 }
 
 void AABCharacterBase::ProcessComboCommand()
@@ -311,6 +343,9 @@ void AABCharacterBase::SetDead()
 
 	// 죽는 애니메이션 재생
 	PlayDeadAnimation();
+
+	// 사망 시 HpBar(위젯) 사라지도록 처리
+	HpBar->SetHiddenInGame(true);
 }
 
 void AABCharacterBase::PlayDeadAnimation()

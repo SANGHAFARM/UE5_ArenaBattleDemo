@@ -10,9 +10,15 @@
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Physics/ABCollision.h"
+
 #include "UI/ABUserWidget.h"
 #include "UI/ABWidgetComponent.h"
 #include "UI/ABHpBarWidget.h"
+
+#include "Item/ABWeaponItemData.h"
+
+// Log 카테고리 정의
+DEFINE_LOG_CATEGORY(LogABCharacter);
 
 // Sets default values
 AABCharacterBase::AABCharacterBase()
@@ -39,11 +45,11 @@ AABCharacterBase::AABCharacterBase()
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
 	
 	// 리소스 설정
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
-	if (CharacterMesh.Object)
-	{
-		GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
-	}
+	// static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
+	// if (CharacterMesh.Object)
+	// {
+	// 	GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
+	// }
 
 	// Animation Blueprint 설정
 	static ConstructorHelpers::FClassFinder<UAnimInstance> CharacterAnim(TEXT("/Game/ArenaBattle/Animation/ABP_ABCharacter.ABP_ABCharacter_C"));
@@ -111,6 +117,16 @@ AABCharacterBase::AABCharacterBase()
 		// 콜리전 끄기
 		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
+
+	// Item Section
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::EquipWeapon)));
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::DrinkPotion)));
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::ReadScroll)));
+
+	// 무기를 보여줄 컴포넌트 생성
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+	// 메시 컴포넌트 하위로 계층을 설정하고, hand_rSocket에 부착
+	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
 }
 
 void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* InCharacterControlData)
@@ -364,4 +380,42 @@ void AABCharacterBase::PlayDeadAnimation()
 		const float PlayRate = 1.0f;
 		PlayAnimMontage(DeadMontage, PlayRate);		
 	}
+}
+
+void AABCharacterBase::TakeItem(UABItemData* InItemData)
+{
+	// 아이템 정보가 넘어오면 처리
+	if (InItemData)
+	{
+		TakeItemActions[(uint8)InItemData->Type].ItemDelegate.ExecuteIfBound(InItemData);
+	}
+}
+
+void AABCharacterBase::DrinkPotion(UABItemData* InItemData)
+{
+	UE_LOG(LogABCharacter, Warning, TEXT("Drink Potion"));
+}
+
+void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
+{
+	// 함수에 전달된 아이템 데이터 에셋을 무기 데이터로 변환
+	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
+
+	// 변환에 성공 시
+	if (WeaponItemData)
+	{
+		// 무기 메시가 아직 로딩 안된 경우, 로드 처리
+		if (WeaponItemData->WeaponMesh.IsPending())
+		{
+			WeaponItemData->WeaponMesh.LoadSynchronous();
+		}
+		
+		// 무기 컴포넌트에 해당 스켈레탈 메시 설정
+		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+	}
+}
+
+void AABCharacterBase::ReadScroll(UABItemData* InItemData)
+{
+	UE_LOG(LogABCharacter, Warning, TEXT("Read Scroll"));
 }

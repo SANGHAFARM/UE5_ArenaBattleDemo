@@ -45,11 +45,11 @@ AABCharacterBase::AABCharacterBase()
 	GetMesh()->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, -88.0f), FRotator(0.0f, -90.0f, 0.0f));
 	
 	// 리소스 설정
-	// static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
-	// if (CharacterMesh.Object)
-	// {
-	// 	GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
-	// }
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Warrior.SK_CharM_Warrior"));
+	if (CharacterMesh.Object)
+	{
+		GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
+	}
 
 	// Animation Blueprint 설정
 	static ConstructorHelpers::FClassFinder<UAnimInstance> CharacterAnim(TEXT("/Game/ArenaBattle/Animation/ABP_ABCharacter.ABP_ABCharacter_C"));

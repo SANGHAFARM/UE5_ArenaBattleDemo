@@ -6,6 +6,7 @@
 #include "Character/ABCharacterNonPlayer.h"
 #include "Components/BoxComponent.h"
 #include "Physics/ABCollision.h"
+#include "Item/ABItemBox.h"
 
 // Sets default values
 AABStageGimmick::AABStageGimmick()
@@ -46,7 +47,7 @@ AABStageGimmick::AABStageGimmick()
 		// 컴포넌트 생성
 		UStaticMeshComponent* Gate = CreateDefaultSubobject<UStaticMeshComponent>(GateSocket);
 
-		// 생성한 스태틱 메시 컴포넌트에 에셋 설정
+		// 생성한 스태틱 메시 컴포넌트에 애셋 설정
 		if (GateMeshRef.Object)
 		{
 			Gate->SetStaticMesh(GateMeshRef.Object);
@@ -96,6 +97,20 @@ AABStageGimmick::AABStageGimmick()
 	OpponentSpawnTime = 2.0f;
 	// 생성할 NPC 클래스 타입 지정
 	OpponentClass = AABCharacterNonPlayer::StaticClass();
+
+	// Reward Section
+	// 생성할 아이템 상자의 클래스 타입 설정 (Compile Time)
+	RewardItemClass = AABItemBox::StaticClass();
+
+	// 생성 위치 설정
+	for (const FName& GateSocket : GateSockets)
+	{
+		// 소켓 위치를 사용해 위치 값 구하기
+		FVector BoxLocation = Stage->GetSocketLocation(GateSocket) / 2;
+
+		// 맵에 추가
+		RewardBoxLocations.Add(GateSocket, BoxLocation);
+	}
 }
 
 void AABStageGimmick::OnConstruction(const FTransform& Transform)
@@ -155,7 +170,7 @@ void AABStageGimmick::SetFight()
 
 	// NPC 생성
 	GetWorld()->GetTimerManager().SetTimer(
-		OpponentTimerHandle,			// 타이머 핸들
+		OpponentTimerHandle,				// 타이머 핸들
 		this,								// 콜백 함수 소유 객체 
 		&AABStageGimmick::OpponentSpawn,	// 콜백 함수
 		OpponentSpawnTime,					// 타이머 시간 값
@@ -176,6 +191,9 @@ void AABStageGimmick::SetChooseReward()
 
 	// 모든 문 닫기
 	CloseAllGates();
+
+	// 보상 상자 생성
+	SpawnRewardBoxes();
 }
 
 void AABStageGimmick::SetChooseNext()
@@ -212,7 +230,6 @@ void AABStageGimmick::OnGateTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 
 	// 가져온 위치에 이미 다른 스테이지가 없는지 확인
 	TArray<FOverlapResult> OverlapResults;
-
 	FCollisionQueryParams CollisionQueryParams(SCENE_QUERY_STAT(GateTrigger), false, this);
 	bool Result = GetWorld()->OverlapMultiByObjectType(
 		OverlapResults,													// 충돌 결과를 반환할 변수
@@ -267,5 +284,58 @@ void AABStageGimmick::OpponentSpawn()
 	if (ABOpponentCharacter)
 	{
 		ABOpponentCharacter->OnDestroyed.AddDynamic(this, &AABStageGimmick::OpponentDestroyed);
+	}
+}
+
+void AABStageGimmick::OnRewardTriggerBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	// 캐릭터가 보상 상자를 획득하면, 상자 배열을 순회하면서 처리 진행
+	for (const auto& RewardBox : RewardBoxes)
+	{
+		// RewardBoxes의 항목은 약참조를 하기 때문에 해당 포인터가 유효한지 보장할 수 없음
+		// 따라서 보상 상자가 유효하면 처리 진행
+		if (RewardBox.IsValid())
+		{
+			// 보상 상자의 포인터 가져오기
+			AABItemBox* ValidBox = RewardBox.Get();
+			AActor* OverlappedBox = OverlappedComponent->GetOwner();
+
+			// 두 박스가 서로 다른 경우에는 제거
+			if (OverlappedBox != ValidBox)
+			{
+				ValidBox->Destroy();
+			}
+		}
+	}
+
+	// 다음 단계로 전환
+	SetState(EStageState::Next);
+}
+
+void AABStageGimmick::SpawnRewardBoxes()
+{
+	// 박스 생성 위치에 대해 순회하면서 생성 처리
+	for (const auto& RewardBoxLocation : RewardBoxLocations)
+	{
+		FVector SpawnLocation = GetActorLocation() + RewardBoxLocation.Value + FVector(0.0f, 0.0f, 30.0f);
+
+		// 박스 액터 생성
+		AActor* ItemActor = GetWorld()->SpawnActor(RewardItemClass, &SpawnLocation, &FRotator::ZeroRotator);
+
+		// 생성이 잘 됐다면, 아이템 박스 타입으로 형변환
+		AABItemBox* RewardBoxActor = Cast<AABItemBox>(ItemActor);
+		if (RewardBoxActor)
+		{
+			// 생성된 아이템 액터에 태그 추가
+			// 나중에 구분을 하기 위해 추가
+			RewardBoxActor->Tags.Add(RewardBoxLocation.Key);
+
+			// 오버랩 이벤트에 등록
+			RewardBoxActor->GetTrigger()->OnComponentBeginOverlap.AddDynamic(this, &AABStageGimmick::OnRewardTriggerBeginOverlap);
+
+			// 생성된 아이템 상자를 배열에 추가
+			RewardBoxes.Add(RewardBoxActor);
+		}
 	}
 }

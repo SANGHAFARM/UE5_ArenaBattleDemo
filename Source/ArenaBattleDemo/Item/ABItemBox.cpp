@@ -3,7 +3,9 @@
 
 #include "Item/ABItemBox.h"
 
+#include "ABItemData.h"
 #include "Components/BoxComponent.h"
+#include "Engine/AssetManager.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Physics/ABCollision.h"
 #include "Interface/ABCharacterItemInterface.h"
@@ -32,7 +34,7 @@ AABItemBox::AABItemBox()
 	
 	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 
-	// 에셋 로드
+	// 애셋 로드
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> BoxMeshRef(TEXT("/Game/ArenaBattle/Environment/Props/SM_Env_Breakables_Box1.SM_Env_Breakables_Box1"));
 	if (BoxMeshRef.Object)
 	{
@@ -41,23 +43,55 @@ AABItemBox::AABItemBox()
 	// 메시 컴포넌트의 위치 조정
 	Mesh->AddRelativeLocation(FVector(0.0f, -3.5f, -30.0f));
 
-	// 파티클 에셋 로드
+	// 파티클 애셋 로드
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> EffectRef(TEXT("/Game/ArenaBattle/Effect/P_TreasureChest_Open_Mesh.P_TreasureChest_Open_Mesh"));
 	if (EffectRef.Object)
 	{
-		// 파티클 에셋 설정
+		// 파티클 애셋 설정
 		Effect->SetTemplate(EffectRef.Object);
 
 		// 바로 재생되지 않도록 설정
 		Effect->bAutoActivate = false;
 	}
+}
 
-	//Trigger->OnComponentBeginOverlap
-	//FOnSystemFinished
+void AABItemBox::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// PrimaryAssetId 목록을 가져오기 위해 애셋 매니저 싱글톤 참조
+	UAssetManager& Manager = UAssetManager::Get();
+
+	// 애셋 목록 가져오기
+	TArray<FPrimaryAssetId> Assets;
+	Manager.GetPrimaryAssetIdList(TEXT("ABItemData"), Assets);
+
+	// 제대로 가져왔는지 검사
+	ensure(Assets.Num() > 0);
+
+	UE_LOG(LogTemp, Warning, TEXT("Assets Num : %d"), Assets.Num());
+	
+	// 랜덤으로 인덱스 선택
+	int32 RandomIndex = FMath::RandRange(0, Assets.Num() - 1);
+
+	// 선택된 인덱스를 사용해 애셋 참조
+	FSoftObjectPtr AssetPtr(Manager.GetPrimaryAssetPath(Assets[RandomIndex]));
+
+	// 애셋이 로드가 안된 경우, 로드
+	if (AssetPtr.IsPending())
+	{
+		AssetPtr.LoadSynchronous();
+	}
+
+	// 로드한 애셋을 아이템으로 설정
+	Item = Cast<UABItemData>(AssetPtr.Get());
+
+	// 제대로 설정됐는지 확인
+	ensure(Item);
 }
 
 void AABItemBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// 꽝 상자도 있다고 가정
 	// Item이 nullptr이면 꽝

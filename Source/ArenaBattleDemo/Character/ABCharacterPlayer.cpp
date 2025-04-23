@@ -95,7 +95,7 @@ void AABCharacterPlayer::SetCharacterControl(ECharacterControlType NewCharacterC
 	UABCharacterControlData* NewCharacterControl = CharacterControlManager[NewCharacterControlType];
 	check(NewCharacterControl);
 
-	// 데이터 에셋을 사용해 관련 값 설정
+	// 데이터 애셋을 사용해 관련 값 설정
 	SetCharacterControlData(NewCharacterControl);
 
 	// Add Input Mapping Context to Enhanced Input System

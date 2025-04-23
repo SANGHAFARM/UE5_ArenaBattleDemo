@@ -185,7 +185,7 @@ void AABCharacterBase::AttackHitCheck()
 	if (HitDetected)
 	{
 		// 대미지 양
-		const float AttackDamage = 30.0f;
+		const float AttackDamage = 100.0f;
 
 		// 대미지 이벤트
 		FDamageEvent DamageEvent;
@@ -398,7 +398,7 @@ void AABCharacterBase::DrinkPotion(UABItemData* InItemData)
 
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 {
-	// 함수에 전달된 아이템 데이터 에셋을 무기 데이터로 변환
+	// 함수에 전달된 아이템 데이터 애셋을 무기 데이터로 변환
 	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
 
 	// 변환에 성공 시

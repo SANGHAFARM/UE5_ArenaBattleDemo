@@ -17,6 +17,12 @@ class ARENABATTLEDEMO_API AABItemBox : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AABItemBox();
+
+	// Getter
+	FORCEINLINE UBoxComponent* GetTrigger() const { return Trigger; }
+
+protected:
+	virtual void PostInitializeComponents() override;
 	
 protected:
 	// 박스 컴포넌트의 오버랩 델리게이트에 등록할 함수

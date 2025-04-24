@@ -243,7 +243,18 @@ void AABStageGimmick::OnGateTriggerBeginOverlap(UPrimitiveComponent* OverlappedC
 	// 생성하려는 위치에 다른 스테이지가 없다면 생성 진행
 	if (!Result)
 	{
-		GetWorld()->SpawnActor<AABStageGimmick>(NewLocation, FRotator::ZeroRotator);
+		FTransform SpawnTransform(NewLocation);
+		
+		AABStageGimmick* NewGimmick = GetWorld()->SpawnActorDeferred<AABStageGimmick>(AABStageGimmick::StaticClass(), SpawnTransform);
+
+		// 새로 생성한 스테이지의 숫자를 하나 증가
+		if (NewGimmick)
+		{
+			NewGimmick->SetStageNum(CurrentStageNum + 1);
+
+			// 생성 완료 처리
+			NewGimmick->FinishSpawning(SpawnTransform);
+		}
 	}
 }
 
@@ -274,16 +285,20 @@ void AABStageGimmick::OpponentDestroyed(AActor* DestroyedActor)
 void AABStageGimmick::OpponentSpawn()
 {
 	// NPC를 생성할 위치 설정
-	const FVector SpawnLocation = GetActorLocation() + FVector::UpVector * 88.0f;
-
+	const FTransform SpawnTransform(GetActorLocation() + FVector::UpVector * 88.0f);
+	
 	// NPC 생성
-	AActor* OpponentActor = GetWorld()->SpawnActor(OpponentClass, &SpawnLocation, &FRotator::ZeroRotator);
-
+	AABCharacterNonPlayer* ABOpponentCharacter = GetWorld()->SpawnActorDeferred<AABCharacterNonPlayer>(OpponentClass, SpawnTransform);
 	// NPC가 죽었을 때 발행되는 델리게이트에 등록
-	AABCharacterNonPlayer* ABOpponentCharacter = Cast<AABCharacterNonPlayer>(OpponentActor);
 	if (ABOpponentCharacter)
 	{
 		ABOpponentCharacter->OnDestroyed.AddDynamic(this, &AABStageGimmick::OpponentDestroyed);
+
+		// 현재 스테이지 레벨을 캐릭터 NPC 레벨로 설정
+		ABOpponentCharacter->SetLevel(CurrentStageNum);
+
+		// 생성 완료 처리
+		ABOpponentCharacter->FinishSpawning(SpawnTransform);
 	}
 }
 
@@ -318,13 +333,12 @@ void AABStageGimmick::SpawnRewardBoxes()
 	// 박스 생성 위치에 대해 순회하면서 생성 처리
 	for (const auto& RewardBoxLocation : RewardBoxLocations)
 	{
-		FVector SpawnLocation = GetActorLocation() + RewardBoxLocation.Value + FVector(0.0f, 0.0f, 30.0f);
+		FTransform SpawnTransform(GetActorLocation() + RewardBoxLocation.Value + FVector(0.0f, 0.0f, 30.0f));
 
 		// 박스 액터 생성
-		AActor* ItemActor = GetWorld()->SpawnActor(RewardItemClass, &SpawnLocation, &FRotator::ZeroRotator);
+		AABItemBox* RewardBoxActor = GetWorld()->SpawnActorDeferred<AABItemBox>(RewardItemClass, SpawnTransform);
 
 		// 생성이 잘 됐다면, 아이템 박스 타입으로 형변환
-		AABItemBox* RewardBoxActor = Cast<AABItemBox>(ItemActor);
 		if (RewardBoxActor)
 		{
 			// 생성된 아이템 액터에 태그 추가
@@ -336,6 +350,15 @@ void AABStageGimmick::SpawnRewardBoxes()
 
 			// 생성된 아이템 상자를 배열에 추가
 			RewardBoxes.Add(RewardBoxActor);
+		}
+	}
+
+	// 생성을 모두 완료한 후에 FinishSpawning() 호출
+	for (const auto& RewardBox : RewardBoxes)
+	{
+		if (RewardBox.IsValid())
+		{
+			RewardBox.Get()->FinishSpawning(RewardBox.Get()->GetActorTransform());
 		}
 	}
 }

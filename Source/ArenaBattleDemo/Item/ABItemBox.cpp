@@ -30,7 +30,7 @@ AABItemBox::AABItemBox()
 	Trigger->SetBoxExtent(FVector(40.0f, 42.0f, 30.0f));
 	
 	// 트리거가 발생하는 다이나믹 델리게이트에 함수 틍록
-	Trigger->OnComponentBeginOverlap.AddDynamic(this, &AABItemBox::OnOverlapBegin);
+	//Trigger->OnComponentBeginOverlap.AddDynamic(this, &AABItemBox::OnOverlapBegin);
 	
 	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 
@@ -68,8 +68,6 @@ void AABItemBox::PostInitializeComponents()
 
 	// 제대로 가져왔는지 검사
 	ensure(Assets.Num() > 0);
-
-	UE_LOG(LogTemp, Warning, TEXT("Assets Num : %d"), Assets.Num());
 	
 	// 랜덤으로 인덱스 선택
 	int32 RandomIndex = FMath::RandRange(0, Assets.Num() - 1);
@@ -88,6 +86,9 @@ void AABItemBox::PostInitializeComponents()
 
 	// 제대로 설정됐는지 확인
 	ensure(Item);
+	
+	// 트리거가 발생하는 다이나믹 델리게이트에 함수 틍록
+	Trigger->OnComponentBeginOverlap.AddDynamic(this, &AABItemBox::OnOverlapBegin);
 }
 
 void AABItemBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

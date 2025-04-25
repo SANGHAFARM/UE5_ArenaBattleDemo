@@ -25,6 +25,11 @@ UABGameSingleton::UABGameSingleton()
 		DataTable->GetRowMap().GenerateValueArray(ValueArray);
 
 		// 알고리즘을 활용해 Value 값을 변환해 저장
+		// for (uint8* Value : ValueArray)
+		// {
+		// 	CharacterStatTable.Add(*reinterpret_cast<FABCharacterStat*>(Value));
+		// }
+		
 		Algo::Transform(ValueArray, CharacterStatTable,
 			[](uint8* Value)
 			{

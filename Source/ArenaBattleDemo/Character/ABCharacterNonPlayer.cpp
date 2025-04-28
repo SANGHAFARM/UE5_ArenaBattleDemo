@@ -5,6 +5,7 @@
 
 #include "Engine/AssetManager.h"
 #include "AI/ABAIController.h"
+#include "CharacterStat/ABCharacterStatComponent.h"
 
 AABCharacterNonPlayer::AABCharacterNonPlayer()
 {
@@ -34,6 +35,24 @@ void AABCharacterNonPlayer::PostInitializeComponents()
 	NPCMeshHandle = UAssetManager::Get().GetStreamableManager().RequestAsyncLoad(NPCMeshes[RandomIndex], FStreamableDelegate::CreateUObject(this, &AABCharacterNonPlayer::NPCMeshLoadCompleted));
 }
 
+void AABCharacterNonPlayer::SetDead()
+{
+	Super::SetDead();
+
+	// 타이머를 사용해 액터 제거
+	FTimerHandle DeadTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(DeadTimerHandle, FTimerDelegate::CreateLambda
+		([&]()
+			{
+				// 액터 제거
+				Destroy();
+			}
+		),
+		DeadEventDelayTime,		// 타이머 설정 시간
+		false					// 반복 여부 설정 (반복 안함)
+	);
+}
+
 void AABCharacterNonPlayer::NPCMeshLoadCompleted()
 {
 	// 메시 요청 시 반환된 핸들 값이 유효한지 확인
@@ -57,20 +76,41 @@ void AABCharacterNonPlayer::NPCMeshLoadCompleted()
 	NPCMeshHandle->ReleaseHandle();
 }
 
-void AABCharacterNonPlayer::SetDead()
+float AABCharacterNonPlayer::GetAIPatrolRadius()
 {
-	Super::SetDead();
+	return 800.0f;
+}
 
-	// 타이머를 사용해 액터 제거
-	FTimerHandle DeadTimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(DeadTimerHandle, FTimerDelegate::CreateLambda
-		([&]()
-			{
-				// 액터 제거
-				Destroy();
-			}
-		),
-		DeadEventDelayTime,		// 타이머 설정 시간
-		false					// 반복 여부 설정 (반복 안함)
-	);
+float AABCharacterNonPlayer::GetAIDetectRange()
+{
+	return 400.0f;
+}
+
+float AABCharacterNonPlayer::GetAIAttackRange()
+{
+	return Stat->GetTotalStat().AttackRange + Stat->GetAttackRadius() * 2;
+}
+
+float AABCharacterNonPlayer::GetAITurnSpeed()
+{
+	return 2.0f;
+}
+
+void AABCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinished)
+{
+	OnAttackFinished = InOnAttackFinished;
+}
+
+void AABCharacterNonPlayer::AttackByAI()
+{
+	// 공격 진행을 위한 콤보 실행 함수 호출
+	ProcessComboCommand();
+}
+
+void AABCharacterNonPlayer::NotifyComboActionEnd()
+{
+	Super::NotifyComboActionEnd();
+
+	// 전달 받은 델리게이트 실행
+	OnAttackFinished.ExecuteIfBound();
 }

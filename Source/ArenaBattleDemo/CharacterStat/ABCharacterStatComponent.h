@@ -30,7 +30,9 @@ protected:
 public:
 	// Getter
 	// FORCEINLINE float GetMaxHP() { return MaxHp; }
-	FORCEINLINE float GetCurrentHP() { return CurrentHp; }
+	FORCEINLINE float GetCurrentHP() const { return CurrentHp; }
+
+	FORCEINLINE float GetAttackRadius() const { return AttackRadius; }
 
 	// 캐릭터 레벨을 설정하는 함수
 	void SetLevelStat(int32 InNewLevel);
@@ -78,6 +80,10 @@ protected:
 	// 현재 레벨
 	UPROPERTY(Transient, VisibleAnywhere, Category = Stat)
 	float CurrentLevel;
+
+	// 공격 범위
+	UPROPERTY(VisibleInstanceOnly, Category = Stat, meta = (AllowPrivateAccess = "true"))
+	float AttackRadius;
 	
 	// 캐릭터의 기본 스탯 데이터
 	UPROPERTY(Transient, VisibleAnywhere, Category = Stat, meta = (AllowPrivateAccess = "true"))

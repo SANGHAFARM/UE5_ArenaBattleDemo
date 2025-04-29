@@ -298,7 +298,7 @@ void AABCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 	// 캐릭터 무브먼트 컴포넌트 모드 복구
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 
-	// 공격 끝났음을 알리기 위해 호출.
+	// 공격 끝났음을 알리기 위해 호출
 	NotifyComboActionEnd();
 }
 

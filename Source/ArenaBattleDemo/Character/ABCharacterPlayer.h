@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Character/ABCharacterBase.h"
+#include "Interface/ABCharacterHUDInterface.h"
 #include "ABCharacterPlayer.generated.h"
 
 struct FInputActionValue;
@@ -16,7 +17,7 @@ class UInputAction;
  * 
  */
 UCLASS()
-class ARENABATTLEDEMO_API AABCharacterPlayer : public AABCharacterBase
+class ARENABATTLEDEMO_API AABCharacterPlayer : public AABCharacterBase, public IABCharacterHUDInterface
 {
 	GENERATED_BODY()
 
@@ -71,4 +72,9 @@ protected:
 
 	// 현재 사용 중인 캐릭터 모드
 	ECharacterControlType CurrentCharacterControlType;
+
+	// UI Section
+protected:
+	// IABCharacterHUDInterface 함수 구현
+	virtual void SetupHUDWidget(UABHUDWidget* InHUDWidget) override;
 };

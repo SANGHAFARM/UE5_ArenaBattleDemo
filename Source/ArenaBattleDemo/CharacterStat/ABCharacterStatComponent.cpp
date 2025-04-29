@@ -12,12 +12,16 @@ UABCharacterStatComponent::UABCharacterStatComponent()
 	//CurrentHp = MaxHp;
 	CurrentLevel = 1.0f;
 	AttackRadius = 50.0f;
+
+	// bWantsInitializeComponent 플래그를 설정해야
+	// InitializeComponent 함수가 호출됨
+	// 성능 상 영향을 줄 수 있기 때문에 필요한 경우에만 사용하도록 설계했다고 예상 (기본값이 false)
+	bWantsInitializeComponent = true;
 }
 
-// Called when the game starts
-void UABCharacterStatComponent::BeginPlay()
+void UABCharacterStatComponent::InitializeComponent()
 {
-	Super::BeginPlay();
+	Super::InitializeComponent();
 
 	// 레벨 스탯 데이터 설정
 	SetLevelStat(static_cast<int32>(CurrentLevel));

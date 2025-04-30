@@ -4,6 +4,7 @@
 #include "UI/ABHpBarWidget.h"
 
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
 #include "Interface/ABCharacterWidgetInterface.h"
 
 UABHpBarWidget::UABHpBarWidget(const FObjectInitializer& ObjectInitializer)
@@ -15,14 +16,45 @@ UABHpBarWidget::UABHpBarWidget(const FObjectInitializer& ObjectInitializer)
 
 void UABHpBarWidget::UpdateHpBar(float NewCurrentHp)
 {
+	// 현재 HP 값 업데이트
+	CurrentHp = NewCurrentHp;
+	
 	// MaxHp 값이 제대로 설정됐는지 확인
 	ensure(MaxHp > 0.0f);
 
 	// 프로그레스바 위젯 업데이트
 	if (HpProgressBar)
 	{
-		HpProgressBar->SetPercent(NewCurrentHp / MaxHp);
+		HpProgressBar->SetPercent(CurrentHp / MaxHp);
 	}
+
+	// Hp 스탯 텍스트 업데이트
+	if (HpStat)
+	{
+		HpStat->SetText(FText::FromString(GetHpStatText()));
+	}
+}
+
+void UABHpBarWidget::UpdateStat(const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat)
+{
+	MaxHp = (BaseStat + ModifierStat).MaxHp;
+
+	// 프로그레스바가 유효하면
+	if (HpProgressBar)
+	{
+		HpProgressBar->SetPercent(CurrentHp / MaxHp);
+	}
+	
+	// 텍스트 블록이 유효하면
+	if (HpStat)
+	{
+		HpStat->SetText(FText::FromString(GetHpStatText()));
+	}
+}
+
+FString UABHpBarWidget::GetHpStatText()
+{
+	return FString::Printf(TEXT("%.0f / %.0f"), CurrentHp, MaxHp);
 }
 
 void UABHpBarWidget::NativeConstruct()
@@ -34,6 +66,9 @@ void UABHpBarWidget::NativeConstruct()
 	// 위젯 참조 설정을 위해 이름으로 검색
 	HpProgressBar = Cast<UProgressBar>(GetWidgetFromName(TEXT("Pb_HpBar")));
 	ensure(HpProgressBar);
+	
+	HpStat = Cast<UTextBlock>(GetWidgetFromName(TEXT("TxtHpStat")));
+	ensure(HpStat);
 
 	// 하고 싶은 것 : 캐릭터에 내 정보(위젯)을 전달
 	// 강참조를 피하기 위해 인터페이스를 통해 우회 전달 (느슨한 결합(참조))

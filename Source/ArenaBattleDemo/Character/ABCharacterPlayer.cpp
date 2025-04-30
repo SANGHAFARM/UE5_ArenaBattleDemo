@@ -68,9 +68,30 @@ AABCharacterPlayer::AABCharacterPlayer()
 void AABCharacterPlayer::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// Controller
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// 입력 활성화
+		EnableInput(PlayerController);
+	}
 
 	// 입력 설정
 	SetCharacterControl(CurrentCharacterControlType);
+}
+
+void AABCharacterPlayer::SetDead()
+{
+	Super::SetDead();
+
+	// Controller
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// 입력 비활성화
+		DisableInput(PlayerController);
+	}
 }
 
 void AABCharacterPlayer::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)

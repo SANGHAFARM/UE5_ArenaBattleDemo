@@ -36,6 +36,12 @@ public:
 	// Getter
 	// FORCEINLINE float GetMaxHP() { return MaxHp; }
 	FORCEINLINE float GetCurrentHP() const { return CurrentHp; }
+	FORCEINLINE void HealHp(float InHealAmount)
+	{
+		CurrentHp = FMath::Clamp(CurrentHp + InHealAmount, 0, GetTotalStat().MaxHp);
+
+		OnHpChanged.Broadcast(CurrentHp);
+	}
 
 	FORCEINLINE float GetAttackRadius() const { return AttackRadius; }
 
@@ -47,6 +53,12 @@ public:
 	FORCEINLINE FABCharacterStat GetTotalStat() const
 	{
 		return BaseStat + ModifierStat;
+	}
+	
+	FORCEINLINE void AddBaseStat(const FABCharacterStat& InAddBaseStat)
+	{
+		BaseStat = BaseStat + InAddBaseStat;
+		OnStatChanged.Broadcast(BaseStat, ModifierStat);
 	}
 	
 	// 기본 스탯 정보가 변경될 때 사용할 함수

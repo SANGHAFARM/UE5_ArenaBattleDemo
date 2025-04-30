@@ -15,7 +15,7 @@
 #include "UI/ABWidgetComponent.h"
 #include "UI/ABHpBarWidget.h"
 
-#include "Item/ABWeaponItemData.h"
+#include "Item/ABItems.h"
 
 // Log 카테고리 정의
 DEFINE_LOG_CATEGORY(LogABCharacter);
@@ -148,13 +148,15 @@ void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
 	{
 		// 최대 체력 값 설정
 		//HpBarWidget->SetMaxHp(Stat->GetMaxHP());
-		HpBarWidget->SetMaxHp(Stat->GetTotalStat().MaxHp);
+		//HpBarWidget->SetMaxHp(Stat->GetTotalStat().MaxHp);
+		HpBarWidget->UpdateStat(Stat->GetBaseStat(), Stat->GetModifierStat());
 
 		// HP 퍼센트가 제대로 계산되도록 현재 체력 설정
 		HpBarWidget->UpdateHpBar(Stat->GetCurrentHP());
 
 		// 체력 변경 이벤트(델리게이트)에 함수 및 객체 정보 등록
 		Stat->OnHpChanged.AddUObject(HpBarWidget, &UABHpBarWidget::UpdateHpBar);
+		Stat->OnStatChanged.AddUObject(HpBarWidget, &UABHpBarWidget::UpdateStat);
 	}
 }
 
@@ -232,6 +234,9 @@ void AABCharacterBase::PostInitializeComponents()
 
 	// 사망 시 발행되는 이벤트에 등록
 	Stat->OnHpZero.AddUObject(this, &AABCharacterBase::SetDead);
+
+	// 스탯에 변경됐을 때 발행되는 이벤트에 함수 등록
+	Stat->OnStatChanged.AddUObject(this, &AABCharacterBase::ApplyStat);
 }
 
 void AABCharacterBase::ProcessComboCommand()
@@ -406,7 +411,13 @@ void AABCharacterBase::TakeItem(UABItemData* InItemData)
 
 void AABCharacterBase::DrinkPotion(UABItemData* InItemData)
 {
-	UE_LOG(LogABCharacter, Warning, TEXT("Drink Potion"));
+	//UE_LOG(LogABCharacter, Warning, TEXT("Drink Potion"));
+	UABPotionItemData* PotionItemData = Cast<UABPotionItemData>(InItemData);
+	if (PotionItemData)
+	{
+		// 스탯 컴포넌트에 체력 회복 처리
+		Stat->HealHp(PotionItemData->HealAmount);
+	}
 }
 
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
@@ -433,7 +444,14 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 
 void AABCharacterBase::ReadScroll(UABItemData* InItemData)
 {
-	UE_LOG(LogABCharacter, Warning, TEXT("Read Scroll"));
+	//UE_LOG(LogABCharacter, Warning, TEXT("Read Scroll"));
+
+	// 아이템 수집 처리를 위한 형변환
+	UABScrollItemData* ScrollItemData = Cast<UABScrollItemData>(InItemData);
+	if (ScrollItemData)
+	{
+		Stat->AddBaseStat(ScrollItemData->BaseStat);
+	}
 }
 
 int32 AABCharacterBase::GetLevel() const
@@ -444,4 +462,13 @@ int32 AABCharacterBase::GetLevel() const
 void AABCharacterBase::SetLevel(int32 InNewLevel)
 {
 	Stat->SetLevelStat(InNewLevel);
+}
+
+void AABCharacterBase::ApplyStat(const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat)
+{
+	// 스탯 데이터에서 최종 이동 속력 구하기
+	float MovementSpeed = (BaseStat + ModifierStat).MovementSpeed;
+
+	// 컴포넌트에 속력 설정
+	GetCharacterMovement()->MaxWalkSpeed = MovementSpeed;
 }

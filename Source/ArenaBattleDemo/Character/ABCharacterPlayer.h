@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Character/ABCharacterBase.h"
 #include "Interface/ABCharacterHUDInterface.h"
+
+#include "Interface/ABGameInterface.h"
 #include "ABCharacterPlayer.generated.h"
 
 struct FInputActionValue;

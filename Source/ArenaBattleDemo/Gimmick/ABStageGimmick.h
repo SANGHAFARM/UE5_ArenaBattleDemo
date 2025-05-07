@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Interface/ABGameInterface.h"
 #include "ABStageGimmick.generated.h"
 
 class AABItemBox;
